@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Fonction générique pour afficher un menu interactif
+menu_selection() {
+    local prompt="$1"
+    shift
+    local options=("$@")
+    local selected=0
+    while true; do
+        clear
+        echo "┌────────────────────────────────────┐"
+        printf "│   %s\n" "$prompt"            
+        echo "└────────────────────────────────────┘"
+        echo ""
+        for i in "${!options[@]}"; do
+            if [ $i -eq $selected ]; then
+                echo -e "▶ \e[1;32m[●] ${options[$i]}\e[0m"
+            else
+                echo -e "  [○] ${options[$i]}"
+            fi
+        done
+
+        # Lecture d'une touche sans afficher
+        read -sn 1 key
+        case "$key" in
+            $'\x1b')
+                read -sn 2 key
+                case "$key" in
+                    "[A")  # Flèche haut
+                        ((selected--))
+                        if [ $selected -lt 0 ]; then
+                            selected=$((${#options[@]} - 1))
+                        fi
+                        ;;
+                    "[B")  # Flèche bas
+                        ((selected++))
+                        if [ $selected -ge ${#options[@]} ]; then
+                            selected=0
+                        fi
+                        ;;
+                esac
+                ;;
+            "")  # Touche Entrée
+                return $selected
+                ;;
+        esac
+    done
+}
+
+# Fonction pour exécuter l'action selon le service et l'action choisie
+executer_action() {
+    local service="$1"
+    local action="$2"
+
+    case "$service" in
+        "Apache & MySQL")
+            case "$action" in
+                "Démarrer")
+                    echo "🚀 Démarrage d'Apache et MySQL..."
+                    sudo systemctl start httpd
+                    sudo systemctl start mysqld
+                    echo "📌 État d'Apache :"
+                    systemctl status httpd | grep -E 'Loaded:|Active:'
+                    echo "📌 État de MySQL :"
+                    systemctl status mysqld | grep -E 'Loaded:|Active:'
+                    ;;
+                "Voir le statut")
+                    echo "📌 État d'Apache :"
+                    systemctl status httpd | grep -E 'Loaded:|Active:'
+                    echo "📌 État de MySQL :"
+                    systemctl status mysqld | grep -E 'Loaded:|Active:'
+                    ;;
+                "Arrêter")
+                    echo "🛑 Arrêt d'Apache et MySQL..."
+                    sudo systemctl stop httpd
+                    sudo systemctl stop mysqld
+                    ;;
+            esac
+            ;;
+        "MongoDB")
+            case "$action" in
+                "Démarrer")
+                    echo "🚀 Démarrage de MongoDB..."
+                    sudo systemctl start mongod
+                    echo "📌 État de MongoDB :"
+                    systemctl status mongod | grep -E 'Loaded:|Active:'
+                    ;;
+                "Voir le statut")
+                    echo "📌 État de MongoDB :"
+                    systemctl status mongod | grep -E 'Loaded:|Active:'
+                    ;;
+                "Arrêter")
+                    echo "🛑 Arrêt de MongoDB..."
+                    sudo systemctl stop mongod
+                    ;;
+            esac
+            ;;
+        "PostgreSQL")
+            case "$action" in
+                "Démarrer")
+                    echo "🚀 Démarrage de PostgreSQL..."
+                    sudo systemctl start postgresql
+                    echo "📌 État de PostgreSQL :"
+                    systemctl status postgresql | grep -E 'Loaded:|Active:'
+                    ;;
+                "Voir le statut")
+                    echo "📌 État de PostgreSQL :"
+                    systemctl status postgresql | grep -E 'Loaded:|Active:'
+                    ;;
+                "Arrêter")
+                    echo "🛑 Arrêt de PostgreSQL..."
+                    sudo systemctl stop postgresql
+                    ;;
+            esac
+            ;;
+    esac
+    echo ""
+    echo "Appuyez sur une touche pour continuer..."
+    read -sn 1
+}
+
+# Boucle principale
+while true; do
+    # Menu des services
+    services=("Apache & MySQL" "MongoDB" "PostgreSQL" "Quitter")
+    menu_selection "Sélectionnez le service :" "${services[@]}"
+    service_index=$?
+    selected_service="${services[$service_index]}"
+
+    if [ "$selected_service" = "Quitter" ]; then
+        clear
+        echo "Fermeture..."
+        exit 0
+    fi
+
+    # Menu des actions
+    actions=("Démarrer" "Voir le statut" "Arrêter" "Retour")
+    menu_selection "Sélectionnez l'action pour $selected_service :" "${actions[@]}"
+    action_index=$?
+    selected_action="${actions[$action_index]}"
+
+    if [ "$selected_action" = "Retour" ]; then
+        continue
+    else
+        clear
+        executer_action "$selected_service" "$selected_action"
+    fi
+done
