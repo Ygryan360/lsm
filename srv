@@ -57,23 +57,23 @@ executer_action() {
             case "$action" in
                 "Démarrer")
                     echo "🚀 Démarrage d'Apache et MySQL..."
-                    sudo systemctl start httpd
-                    sudo systemctl start mysqld
+                    sudo systemctl start apache2
+                    sudo systemctl start mysql
                     echo "📌 État d'Apache :"
-                    systemctl status httpd | grep -E 'Loaded:|Active:'
+                    systemctl status apache2 | grep -E 'Loaded:|Active:'
                     echo "📌 État de MySQL :"
-                    systemctl status mysqld | grep -E 'Loaded:|Active:'
+                    systemctl status mysql | grep -E 'Loaded:|Active:'
                     ;;
                 "Voir le statut")
                     echo "📌 État d'Apache :"
-                    systemctl status httpd | grep -E 'Loaded:|Active:'
+                    systemctl status apache2 | grep -E 'Loaded:|Active:'
                     echo "📌 État de MySQL :"
-                    systemctl status mysqld | grep -E 'Loaded:|Active:'
+                    systemctl status mysql | grep -E 'Loaded:|Active:'
                     ;;
                 "Arrêter")
                     echo "🛑 Arrêt d'Apache et MySQL..."
-                    sudo systemctl stop httpd
-                    sudo systemctl stop mysqld
+                    sudo systemctl stop apache2
+                    sudo systemctl stop mysql
                     ;;
             esac
             ;;
