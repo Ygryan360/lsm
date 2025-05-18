@@ -1,4 +1,18 @@
+
 #!/bin/bash
+
+# Vérification de la présence de systemctl
+if ! command -v systemctl &>/dev/null; then
+    echo -e "\e[31msystemctl n'est pas disponible sur ce système.\e[0m"
+    exit 1
+fi
+
+# Vérification si le script est lancé en root
+if [ "$EUID" -ne 0 ]; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
 
 # Fonction générique pour afficher un menu interactif
 menu_selection() {
@@ -47,18 +61,24 @@ menu_selection() {
     done
 }
 
+
 # Fonction pour exécuter l'action selon le service et l'action choisie
 executer_action() {
     local service="$1"
     local action="$2"
+    local status_code=0
 
     case "$service" in
         "Apache & MySQL")
             case "$action" in
                 "Démarrer")
                     echo "🚀 Démarrage d'Apache et MySQL..."
-                    sudo systemctl start httpd
-                    sudo systemctl start mysqld
+                    if ! $SUDO systemctl start httpd; then
+                        echo -e "\e[31mErreur lors du démarrage d'Apache\e[0m"; status_code=1
+                    fi
+                    if ! $SUDO systemctl start mysqld; then
+                        echo -e "\e[31mErreur lors du démarrage de MySQL\e[0m"; status_code=1
+                    fi
                     echo "📌 État d'Apache :"
                     systemctl status httpd | grep -E 'Loaded:|Active:'
                     echo "📌 État de MySQL :"
@@ -72,8 +92,25 @@ executer_action() {
                     ;;
                 "Arrêter")
                     echo "🛑 Arrêt d'Apache et MySQL..."
-                    sudo systemctl stop httpd
-                    sudo systemctl stop mysqld
+                    if ! $SUDO systemctl stop httpd; then
+                        echo -e "\e[31mErreur lors de l'arrêt d'Apache\e[0m"; status_code=1
+                    fi
+                    if ! $SUDO systemctl stop mysqld; then
+                        echo -e "\e[31mErreur lors de l'arrêt de MySQL\e[0m"; status_code=1
+                    fi
+                    ;;
+                "Redémarrer")
+                    echo "🔄 Redémarrage d'Apache et MySQL..."
+                    if ! $SUDO systemctl restart httpd; then
+                        echo -e "\e[31mErreur lors du redémarrage d'Apache\e[0m"; status_code=1
+                    fi
+                    if ! $SUDO systemctl restart mysqld; then
+                        echo -e "\e[31mErreur lors du redémarrage de MySQL\e[0m"; status_code=1
+                    fi
+                    echo "📌 État d'Apache :"
+                    systemctl status httpd | grep -E 'Loaded:|Active:'
+                    echo "📌 État de MySQL :"
+                    systemctl status mysqld | grep -E 'Loaded:|Active:'
                     ;;
             esac
             ;;
@@ -81,7 +118,9 @@ executer_action() {
             case "$action" in
                 "Démarrer")
                     echo "🚀 Démarrage de MongoDB..."
-                    sudo systemctl start mongod
+                    if ! $SUDO systemctl start mongod; then
+                        echo -e "\e[31mErreur lors du démarrage de MongoDB\e[0m"; status_code=1
+                    fi
                     echo "📌 État de MongoDB :"
                     systemctl status mongod | grep -E 'Loaded:|Active:'
                     ;;
@@ -91,7 +130,17 @@ executer_action() {
                     ;;
                 "Arrêter")
                     echo "🛑 Arrêt de MongoDB..."
-                    sudo systemctl stop mongod
+                    if ! $SUDO systemctl stop mongod; then
+                        echo -e "\e[31mErreur lors de l'arrêt de MongoDB\e[0m"; status_code=1
+                    fi
+                    ;;
+                "Redémarrer")
+                    echo "🔄 Redémarrage de MongoDB..."
+                    if ! $SUDO systemctl restart mongod; then
+                        echo -e "\e[31mErreur lors du redémarrage de MongoDB\e[0m"; status_code=1
+                    fi
+                    echo "📌 État de MongoDB :"
+                    systemctl status mongod | grep -E 'Loaded:|Active:'
                     ;;
             esac
             ;;
@@ -99,7 +148,9 @@ executer_action() {
             case "$action" in
                 "Démarrer")
                     echo "🚀 Démarrage de PostgreSQL..."
-                    sudo systemctl start postgresql
+                    if ! $SUDO systemctl start postgresql; then
+                        echo -e "\e[31mErreur lors du démarrage de PostgreSQL\e[0m"; status_code=1
+                    fi
                     echo "📌 État de PostgreSQL :"
                     systemctl status postgresql | grep -E 'Loaded:|Active:'
                     ;;
@@ -109,12 +160,57 @@ executer_action() {
                     ;;
                 "Arrêter")
                     echo "🛑 Arrêt de PostgreSQL..."
-                    sudo systemctl stop postgresql
+                    if ! $SUDO systemctl stop postgresql; then
+                        echo -e "\e[31mErreur lors de l'arrêt de PostgreSQL\e[0m"; status_code=1
+                    fi
+                    ;;
+                "Redémarrer")
+                    echo "🔄 Redémarrage de PostgreSQL..."
+                    if ! $SUDO systemctl restart postgresql; then
+                        echo -e "\e[31mErreur lors du redémarrage de PostgreSQL\e[0m"; status_code=1
+                    fi
+                    echo "📌 État de PostgreSQL :"
+                    systemctl status postgresql | grep -E 'Loaded:|Active:'
+                    ;;
+            esac
+            ;;
+        "Redis")
+            case "$action" in
+                "Démarrer")
+                    echo "🚀 Démarrage de Redis..."
+                    if ! $SUDO systemctl start redis; then
+                        echo -e "\e[31mErreur lors du démarrage de Redis\e[0m"; status_code=1
+                    fi
+                    echo "📌 État de Redis :"
+                    systemctl status redis | grep -E 'Loaded:|Active:'
+                    ;;
+                "Voir le statut")
+                    echo "📌 État de Redis :"
+                    systemctl status redis | grep -E 'Loaded:|Active:'
+                    ;;
+                "Arrêter")
+                    echo "🛑 Arrêt de Redis..."
+                    if ! $SUDO systemctl stop redis; then
+                        echo -e "\e[31mErreur lors de l'arrêt de Redis\e[0m"; status_code=1
+                    fi
+                    ;;
+                "Redémarrer")
+                    echo "🔄 Redémarrage de Redis..."
+                    if ! $SUDO systemctl restart redis; then
+                        echo -e "\e[31mErreur lors du redémarrage de Redis\e[0m"; status_code=1
+                    fi
+                    echo "📌 État de Redis :"
+                    systemctl status redis | grep -E 'Loaded:|Active:'
                     ;;
             esac
             ;;
     esac
     echo ""
+    if [ $status_code -eq 0 ]; then
+        echo -e "\e[32mAction terminée avec succès.\e[0m"
+    else
+        echo -e "\e[31mUne ou plusieurs erreurs sont survenues.\e[0m"
+    fi
     echo "Appuyez sur une touche pour continuer..."
     read -sn 1
 }
@@ -122,7 +218,7 @@ executer_action() {
 # Boucle principale
 while true; do
     # Menu des services
-    services=("Apache & MySQL" "MongoDB" "PostgreSQL" "Quitter")
+    services=("Apache & MySQL" "MongoDB" "PostgreSQL" "Redis" "Quitter")
     menu_selection "Sélectionnez le service :" "${services[@]}"
     service_index=$?
     selected_service="${services[$service_index]}"
@@ -134,7 +230,7 @@ while true; do
     fi
 
     # Menu des actions
-    actions=("Démarrer" "Voir le statut" "Arrêter" "Retour")
+    actions=("Démarrer" "Voir le statut" "Arrêter" "Redémarrer" "Retour")
     menu_selection "Sélectionnez l'action pour $selected_service :" "${actions[@]}"
     action_index=$?
     selected_action="${actions[$action_index]}"
